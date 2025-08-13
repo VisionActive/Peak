@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Peak.</title>
+  <link rel="stylesheet" href="app.css"/>
+  <meta name="theme-color" content="#ff3d3d"/>
+  <link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/peak-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/peak-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Peak<span class="dot"></span></div>
+    <div class="pill" id="buildTag">v0.6.1 • local only</div>
+  </header>
+
+  <main class="stack">
+    <!-- ===== Accueil ===== -->
+    <section id="tab-home" class="tab active stack">
+      <section class="card">
+        <h3>Résumé</h3>
+        <div class="kpi" id="homeKPIs">
+          <div class="chip" id="homeSessions">Séances cette semaine: 0</div>
+          <div class="chip" id="homeVolume">Volume 7j: 0 kg</div>
+          <div class="chip" id="homeBest">Best Bench: —</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="chartHeader"><h3>Poids corporel (30 jours)</h3></div>
+        <div class="chartBox tall"><canvas id="homeWeightSpark"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="chartHeader">
+          <h3>Progression par exercice</h3>
+          <div class="inputGlass">
+            <input id="homeExerciseInput" list="allExercises" placeholder="Rechercher un exercice…"/>
+            <button class="mini clear" onclick="setExerciseFilter('home','')">✕</button>
+          </div>
+        </div>
+        <div class="chartBox tall"><canvas id="homeExerciseChart"></canvas></div>
+      </section>
+
+      <section class="card">
+        <h3>Dernière photo</h3>
+        <div id="homeLastPhoto" class="lastPhoto empty">Pas encore de photo.</div>
+      </section>
+    </section>
+
+    <!-- ===== Séances ===== -->
+    <section id="tab-sessions" class="tab stack">
+      <section class="card">
+        <div class="chartHeader">
+          <h3>Courbe par exercice</h3>
+          <div class="inputGlass">
+            <input id="exerciseInput" list="allExercises" placeholder="Bench press, Squat…"/>
+            <button class="mini clear" onclick="setExerciseFilter('sessions','')">✕</button>
+          </div>
+        </div>
+        <div class="recentChips" id="recentChips"></div>
+        <div class="chartBox tall"><canvas id="exerciseChart"></canvas></div>
+      </section>
+
+      <div class="row">
+        <div class="grow"></div>
+        <div class="menuWrap">
+          <button class="cta ghost mini" onclick="openQuickMenu(event)">⋯</button>
+          <div class="menu glass" id="quickMenu">
+            <button onclick="importFromLastSession()">Importer depuis la dernière séance</button>
+            <button onclick="loadTemplate()">Charger un template (Push/Pull/Legs)</button>
+          </div>
+        </div>
+        <button class="cta" onclick="openSessionModal()">＋ Nouvelle séance</button>
+      </div>
+
+      <section class="card">
+        <h3>Historique des séances</h3>
+        <div id="sessionsList" class="list"></div>
+        <div id="sessionsEmpty" class="empty" style="display:none;">Aucune séance.</div>
+      </section>
+    </section>
+
+    <datalist id="allExercises"></datalist>
+
+    <!-- ===== Physique ===== -->
+    <section id="tab-physique" class="tab stack">
+      <section class="card">
+        <h3>Ajouter une photo</h3>
+        <div class="row">
+          <input id="photoDate" type="date"/>
+          <input id="photoWeight" type="number" step="0.1" inputmode="decimal" placeholder="Poids (kg)"/>
+          <input id="photoFile" type="file" accept="image/*" capture="environment"/>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="cta" onclick="addPhoto()">📸 Ajouter</button>
+          <div class="grow"></div>
+          <button class="cta ghost" onclick="exportData()">Exporter</button>
+          <button class="cta ghost" onclick="importData()">Importer</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="chartHeader"><h3>Poids corporel</h3></div>
+        <div class="chartBox tall"><canvas id="weightChart"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="row controlRow">
+          <!-- Layout -->
+          <div class="segControl" id="cmpLayoutSeg">
+            <button class="seg on"  data-layout="vertical" onclick="setLayout('vertical')">Vertical</button>
+            <button class="seg"     data-layout="side"     onclick="setLayout('side')">Côte à côte</button>
+          </div>
+          <!-- Style -->
+          <div class="segControl" id="cmpStyleSeg">
+            <button class="seg on"  data-style="glass" onclick="setStyle('glass')">Glass</button>
+            <button class="seg"     data-style="clean" onclick="setStyle('clean')">Clean</button>
+            <button class="seg"     data-style="bold"  onclick="setStyle('bold')">Bold</button>
+          </div>
+          <div class="grow"></div>
+          <button class="iconBtn ghost" title="Réinitialiser" onclick="resetCrop()">↺</button>
+          <button class="cta" onclick="downloadComparison()">Enregistrer</button>
+        </div>
+
+        <div class="pickerRow">
+          <div class="picker">
+            <div class="pickerLabel">Gauche / Haut</div>
+            <div id="pickerLeft" class="thumbs"></div>
+          </div>
+          <div class="picker">
+            <div class="pickerLabel">Droite / Bas</div>
+            <div id="pickerRight" class="thumbs"></div>
+          </div>
+        </div>
+
+        <div class="storyFrame">
+          <canvas id="compareCanvas"></canvas>
+          <div class="hintBar">🖐️ Glisse pour recadrer • Ctrl/Cmd + molette pour zoomer</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Galerie</h3>
+        <div id="gallery" class="gallery"></div>
+        <div id="galleryEmpty" class="empty" style="display:none;">Ajoute ta première photo pour lancer ta galerie.</div>
+      </section>
+    </section>
+
+    <!-- ===== Paramètres ===== -->
+    <section id="tab-settings" class="tab stack">
+      <section class="card">
+        <h3>Apparence</h3>
+        <div class="themeGrid" id="themeGrid"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="toggle glass" id="lightToggle" onclick="toggleLightMode()">
+            <div class="knob">
+              <svg class="sun" viewBox="0 0 24 24"><path d="M12 4V2m0 20v-2M4 12H2m20 0h-2M5 5l-1.5-1.5M20.5 20.5 19 19M19 5l1.5-1.5M5 19 3.5 20.5"/><circle cx="12" cy="12" r="4"/></svg>
+              <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </div>
+            <span>Mode clair</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Données</h3>
+        <div class="row">
+          <button class="cta ghost" onclick="exportData()">Exporter JSON</button>
+          <button class="cta ghost" onclick="importData()">Importer JSON</button>
+          <button class="cta dangerGlass" onclick="resetAll()">⚠ Réinitialiser</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Installation</h3>
+        <div class="row">
+            <button class="cta" id="btnInstall" style="display:none">Ajouter à l'écran d'accueil</button>
+        <div class="muted" id="installHint">Disponible sur iOS/Android/Chrome.</div>
+        </div>
+      </section>
+      
+      <section class="card">
+        <h3>À propos</h3>
+        <div class="aboutLine">
+          <span>Peak</span><span class="dot aboutDot"></span><span> · 2025 · Made by Thiscc100</span>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottom glassNav">
+    <button class="navBtn active" data-tab="home" onclick="switchTab('home')">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span>Accueil</span>
+    </button>
+    <button class="navBtn" data-tab="sessions" onclick="switchTab('sessions')">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M5 4h14a1 1 0 0 1 1 1v3H4V5a1 1 0 0 1 1-1zm-1 7h16v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8zm5 2v4m6-4v4"/></svg>
+      <span>Séances</span>
+    </button>
+    <button class="navBtn" data-tab="physique" onclick="switchTab('physique')">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M12 5a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm0 0V3m0 18v-2M5 12H3m18 0h-2M7.5 7.5l-1-1m11 11 1 1m0-12-1-1m-11 11-1 1"/></svg>
+      <span>Physique</span>
+    </button>
+    <button class="navBtn" data-tab="settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.94-4.06a7.99 7.99 0 0 0 0 2.12l2.02 1.57a.5.5 0 0 1 .12.66l-1.91 3.3a.5.5 0 0 1-.61.22l-2.38-.96a8.2 8.2 0 0 1-1.83 1.06l-.36 2.54a.5.5 0 0 1-.49.41h-3.82a.5.5 0 0 1-.49-.41l-.36-2.54A8.2 8.2 0 0 1 7.8 18.95l-2.38.96a.5.5 0 0 1-.61-.22l-1.91-3.3a.5.5 0 0 1 .12-.66l2.02-1.57a8.26 8.26 0 0 1 0-2.12L1.04 9.37a.5.5 0 0 1 .12-.66l1.91-3.3a.5.5 0 0 1 .61-.22l2.38.96c.56-.45 1.18-.82 1.83-1.06l.36-2.54A.5.5 0 0 1 9.5 2h3.82a.5.5 0 0 1 .49.41l.36 2.54a8.2 8.2 0 0 1 1.83 1.06l2.38-.96a.5.5 0 0 1 .61.22l1.91 3.3a.5.5 0 0 1-.12.66L19.94 10.94z"/></svg>
+      <span>Paramètres</span>
+    </button>
+  </nav>
+
+  <!-- Fichier pour import JSON -->
+  <input id="hiddenImport" type="file" accept="application/json" style="display:none"/>
+
+  <!-- Modal Séance -->
+  <div id="sessionModal" class="modal">
+    <div class="sheet stack">
+      <button class="closeX" onclick="closeSessionModal()">Fermer</button>
+      <header><div class="brand small">Séance <span class="dot"></span></div></header>
+
+      <div class="row">
+        <input id="sessName" placeholder="Nom de séance (ex: Push Lourd)"/>
+        <input id="sessDate" type="date"/>
+      </div>
+      <input id="sessNotes" placeholder="Notes de séance (optionnel)"/>
+
+      <div class="card inset soft stack">
+        <h3>Exercices</h3>
+
+        <div class="row">
+          <div class="inputGlass grow">
+            <input id="exName" placeholder="Exercice (ex: Bench press)" autocomplete="off"/>
+            <button class="mini" title="Enregistrer en preset" onclick="saveCurrentAsPreset()">★</button>
+          </div>
+          <input id="exSets" type="number" inputmode="numeric" placeholder="Séries"/>
+          <input id="exReps" type="number" inputmode="numeric" placeholder="Répétitions"/>
+          <input id="exWeight" type="number" inputmode="decimal" placeholder="Poids (kg)"/>
+        </div>
+
+        <div id="suggestions" class="suggestions"></div>
+        <div class="recentChips" id="presetChips"></div>
+
+        <div class="segWrap">
+          <div id="segTabs" class="segTabs"></div>
+          <div id="segMuscles" class="chipRow"></div>
+        </div>
+
+        <div class="row">
+          <button class="cta" onclick="addExerciseToDraft()">+ Ajouter l’exo</button>
+          <div class="grow"></div>
+          <button class="cta ghost" onclick="openLibrary()">Bibliothèque</button>
+        </div>
+
+        <div id="draftExercises" class="list"></div>
+        <div id="draftEmpty" class="empty">Aucun exercice pour l’instant.</div>
+      </div>
+
+      <div class="row stickyActions">
+        <button id="btnSaveSession" class="cta" onclick="saveSession()">Enregistrer</button>
+        <div class="grow"></div>
+        <button id="btnDeleteSession" class="cta ghost dangerGlass" style="display:none" onclick="confirmDeleteSession()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer Bibliothèque -->
+  <div id="libModal" class="modal">
+    <div class="sheet stack">
+      <button class="closeX" onclick="closeLibrary()">Fermer</button>
+      <h3>Bibliothèque & Presets</h3>
+      <div class="row">
+        <div class="inputGlass grow"><input id="libSearch" placeholder="Chercher un exo ou un muscle…" oninput="filterLibrary()"/></div>
+      </div>
+      <div id="libSections" class="library"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+
+  <script>
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
+</script>
+
+</body>
+</html>
